@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BookMaker Odds Dashboard</title>
+    <style>
+      :root {
+        --bg: #0f1119;
+        --card-bg: #1a1d2e;
+        --border: #2a2d3e;
+        --text: #e4e6f0;
+        --text-muted: #8b8fa8;
+        --green: #22c55e;
+        --red: #ef4444;
+        --blue: #3b82f6;
+        --accent: #f59e0b;
+        --live: #ef4444;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      header h1 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 4px;
+      }
+      .status-dot.fresh {
+        background: var(--green);
+      }
+      .status-dot.stale {
+        background: var(--accent);
+      }
+      .status-dot.error {
+        background: var(--red);
+      }
+
+      main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .league-section {
+        margin-bottom: 28px;
+      }
+      .league-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      .league-header h2 {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      .league-badge {
+        background: var(--border);
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: 10px;
+      }
+
+      .odds-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 10px;
+      }
+      .odds-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .odds-card.live {
+        border-left: 3px solid var(--live);
+      }
+      .odds-card.pending {
+        border-left: 3px solid var(--blue);
+      }
+      .event-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+      .live-badge {
+        background: var(--live);
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+      .event-teams {
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-align: center;
+      }
+      .event-teams .vs {
+        color: var(--text-muted);
+        margin: 0 6px;
+      }
+      .event-date {
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+      .odds-row {
+        display: flex;
+        gap: 4px;
+      }
+      .odds-cell {
+        flex: 1;
+        background: #111320;
+        border-radius: 6px;
+        padding: 6px 4px;
+        text-align: center;
+      }
+      .odds-cell .label {
+        font-size: 0.6rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      .odds-cell .value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .odds-cell.highlight .value {
+        color: var(--green);
+      }
+
+      .score-display {
+        text-align: center;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+      .no-odds {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        padding: 12px;
+      }
+
+      footer {
+        text-align: center;
+        padding: 20px;
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        border-top: 1px solid var(--border);
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 600px) {
+        .odds-grid {
+          grid-template-columns: 1fr;
+        }
+        main {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        🏈 BookMaker Odds
+        <span
+          style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400"
+          >via BetOnline.ag</span
+        >
+      </h1>
+      <div class="header-right">
+        <span>Updated: <strong id="last-update">--</strong></span>
+        <span
+          ><span class="status-dot fresh" id="status-dot"></span
+          ><span id="status-text">Loading...</span></span
+        >
+      </div>
+    </header>
+
+    <main id="app">
+      <div class="loading">Loading odds data...</div>
+    </main>
+
+    <footer>
+      Data sourced from odds-api.io (BetOnline.ag — same lines as BookMaker) ·
+      Refreshes every 4 minutes
+    </footer>
+
+    <script>
+      const LEAGUE_ORDER = [
+        "NFL",
+        "NCAA Football",
+        "NBA",
+        "NCAA Basketball",
+        "NHL",
+        "MLB",
+        "MMA / UFC",
+        "Premier League",
+        "La Liga",
+        "Liga MX",
+      ];
+
+      function formatDate(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const now = new Date();
+        const diffMs = d - now;
+        const absMs = Math.abs(diffMs);
+
+        if (absMs < 3600000) return "Soon";
+        if (absMs < 86400000) {
+          return d.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+        return (
+          d.toLocaleDateString([], { month: "short", day: "numeric" }) +
+          " " +
+          d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        );
+      }
+
+      function formatScore(scores) {
+        if (!scores) return "";
+        const h = scores.home != null ? scores.home : "0";
+        const a = scores.away != null ? scores.away : "0";
+        return `${h} - ${a}`;
+      }
+
+      function renderOddsCell(label, value, americanValue) {
+        const cls = label === "home" ? "highlight" : "";
+        // Prefer American format if available
+        const display = americanValue || value;
+        return `<div class="odds-cell ${cls}">
+                <div class="label">${label}</div>
+                <div class="value">${display || "--"}</div>
+            </div>`;
+      }
+
+      function renderOddsRow(market) {
+        if (!market || !market.odds || !market.odds[0]) return "";
+        const o = market.odds[0];
+        let html = '<div class="odds-row">';
+        if (o.home != null)
+          html += renderOddsCell("home", o.home, o.home_american);
+        if (o.draw != null)
+          html += renderOddsCell("draw", o.draw, o.draw_american);
+        if (o.away != null)
+          html += renderOddsCell("away", o.away, o.away_american);
+        if (o.over != null && o.under != null) {
+          html += renderOddsCell(
+            "over " + (o.hdp || ""),
+            o.over,
+            o.over_american,
+          );
+          html += renderOddsCell(
+            "under " + (o.hdp || ""),
+            o.under,
+            o.under_american,
+          );
+        }
+        if (o.hdp != null && o.over == null) {
+          html += `<div class="odds-cell">
+                    <div class="label">spread ${o.hdp}</div>
+                    <div class="value">${o.home_american || o.home || "--"} / ${o.away_american || o.away || "--"}</div>
+                </div>`;
+        }
+        html += "</div>";
+        return html;
+      }
+
+      function renderEventCard(evt) {
+        const status = evt.status || "pending";
+        const cls = status === "live" ? "live" : "pending";
+        const markets = evt.bookmaker_odds || [];
+
+        // Find ML market first, then totals, then others
+        const ml = markets.find((m) => m.name === "ML");
+        const totals = markets.find((m) => m.name === "Totals");
+        const spread = markets.find((m) => m.name === "Spread");
+
+        let oddsHtml = "";
+        if (ml) oddsHtml += renderOddsRow(ml);
+        if (totals) oddsHtml += renderOddsRow(totals);
+        if (spread) oddsHtml += renderOddsRow(spread);
+        if (!ml && !totals && !spread) {
+          // Show whatever markets we have
+          for (const m of markets.slice(0, 3)) {
+            oddsHtml += renderOddsRow(m);
+          }
+        }
+
+        return `<div class="odds-card ${cls}">
+                <div class="event-header">
+                    <span>${evt.league?.name || evt.league || ""}</span>
+                    ${
+                      status === "live"
+                        ? `<span class="live-badge">LIVE</span>`
+                        : `<span>${formatDate(evt.date)}</span>`
+                    }
+                </div>
+                <div class="event-teams">
+                    ${evt.home || "TBD"} <span class="vs">vs</span> ${evt.away || "TBD"}
+                </div>
+                ${status === "live" ? `<div class="score-display">${formatScore(evt.scores)}</div>` : ""}
+                ${oddsHtml || '<div class="no-odds">No odds available</div>'}
+            </div>`;
+      }
+
+      async function refresh() {
+        try {
+          const resp = await fetch("/api/odds");
+          const data = await resp.json();
+          const odds = data.odds || [];
+
+          // Group by league
+          const byLeague = {};
+          for (const o of odds) {
+            // Determine league from event cache if available
+            const leagueName = o.league?.name || "Unknown";
+            if (!byLeague[leagueName]) byLeague[leagueName] = [];
+            byLeague[leagueName].push(o);
+          }
+
+          // Sort leagues
+          const leagueKeys = Object.keys(byLeague).sort((a, b) => {
+            const ai = LEAGUE_ORDER.indexOf(a);
+            const bi = LEAGUE_ORDER.indexOf(b);
+            if (ai >= 0 && bi >= 0) return ai - bi;
+            if (ai >= 0) return -1;
+            if (bi >= 0) return 1;
+            return a.localeCompare(b);
+          });
+
+          // Also try to match via events store
+          const eventsByLabel = {};
+
+          let html = "";
+          for (const key of leagueKeys) {
+            const items = byLeague[key];
+            // Sort: live first, then by date
+            items.sort((a, b) => {
+              if (a.status === "live" && b.status !== "live") return -1;
+              if (b.status === "live" && a.status !== "live") return 1;
+              return (a.date || "").localeCompare(b.date || "");
+            });
+
+            html += `<section class="league-section">
+                        <div class="league-header">
+                            <h2>${key}</h2>
+                            <span class="league-badge">${items.length} games</span>
+                        </div>
+                        <div class="odds-grid">
+                            ${items.map(renderEventCard).join("")}
+                        </div>
+                    </section>`;
+          }
+
+          // Also show events that have no odds yet (pending events from cache)
+          // We'd need the events endpoint for this - skip for now
+
+          document.getElementById("app").innerHTML =
+            html ||
+            '<div class="loading">No odds data yet. Waiting for first refresh...</div>';
+
+          // Update header
+          const lastUpdate = data.last_odds_refresh;
+          document.getElementById("last-update").textContent = lastUpdate
+            ? formatDate(lastUpdate)
+            : "Never";
+          const dot = document.getElementById("status-dot");
+          const statusText = document.getElementById("status-text");
+          if (lastUpdate) {
+            const age = Date.now() - new Date(lastUpdate).getTime();
+            if (age < 300000) {
+              // < 5 min
+              dot.className = "status-dot fresh";
+              statusText.textContent = "Live";
+            } else if (age < 600000) {
+              dot.className = "status-dot stale";
+              statusText.textContent = "Stale";
+            } else {
+              dot.className = "status-dot error";
+              statusText.textContent = "Old data";
+            }
+          }
+        } catch (err) {
+          console.error("Refresh error:", err);
+          document.getElementById("status-dot").className = "status-dot error";
+          document.getElementById("status-text").textContent = "Error";
+        }
+      }
+
+      // Initial load
+      refresh();
+
+      // Auto-refresh every 60 seconds (server refreshes every 3 min)
+      setInterval(refresh, 60000);
+    </script>
+  </body>
+</html>
