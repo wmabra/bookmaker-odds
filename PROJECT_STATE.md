@@ -1,4 +1,9 @@
-# BookMaker Odds — Developer Handoff
+# BookMaker Odds — Project State
+
+> **Repo:** https://github.com/wmabra/bookmaker-odds · **Branch:** `main` · **Local path:** `~/bookmaker-odds`
+> **Fresh-machine resume:** `git clone git@github.com:wmabra/bookmaker-odds.git && cd bookmaker-odds && pip install -r requirements.txt` then create `.env` from `.env.example` (the `ODDS_API_KEY` is not in the repo) and run `python3 odds_server.py`.
+>
+> **Last updated:** 2026-10-21
 
 ## What this is
 
